@@ -1,0 +1,27 @@
+services:
+  model-server:
+    image: tensorflow/serving
+    platform: linux/amd64
+    container_name: user-engagement-model
+    ports:
+      - "8501:8501"
+      - "8500:8500"
+    environment:
+      MODEL_NAME: user_engagement
+    volumes:
+      - ./serving/user_engagement:/models/user_engagement
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: user-engagement-api
+    ports:
+      - "8000:8000"
+    environment:
+      TF_SERVING_URL: http://model-server:8501/v1/models/user_engagement:predict
+      TF_SERVING_STATUS_URL: http://model-server:8501/v1/models/user_engagement
+    depends_on:
+      - model-server
+    restart: unless-stopped

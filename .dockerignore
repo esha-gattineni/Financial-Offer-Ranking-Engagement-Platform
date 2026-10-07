@@ -1,0 +1,10 @@
+.venv
+.venv-tfx
+.venv-ml
+.git
+__pycache__
+*.pyc
+.DS_Store
+models
+artifacts
+data/raw
