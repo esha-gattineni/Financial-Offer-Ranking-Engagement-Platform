@@ -68,68 +68,81 @@ def load_dataset():
 # CHRONOLOGICAL SPLIT
 # ============================================================
 
-def chronological_split(dataset):
-    print("\nCreating chronological split...")
+def chronological_split(dataset, train_fraction=0.80):
+    """
+    Split interactions chronologically while keeping all displays
+    with the same timestamp on the same side of the boundary.
 
-    # One timestamp per display
-    displays = (
-        dataset[
-            [
-                "display_id",
-                "timestamp",
-            ]
-        ]
-        .drop_duplicates(
-            subset=["display_id"]
-        )
-        .sort_values(
-            [
-                "timestamp",
-                "display_id",
-            ]
-        )
+    This prevents ambiguous temporal boundaries when historical
+    engagement features are generated from prior outcomes.
+    """
+
+    display_times = (
+        dataset[["display_id", "timestamp"]]
+        .drop_duplicates(subset=["display_id"])
+        .sort_values(["timestamp", "display_id"])
+        .reset_index(drop=True)
     )
 
-    split_position = int(
-        len(displays) * 0.80
+    unique_timestamps = (
+        display_times["timestamp"]
+        .dropna()
+        .sort_values()
+        .unique()
+    )
+
+    if len(unique_timestamps) < 2:
+        raise ValueError(
+            "At least two unique timestamps are required "
+            "for chronological splitting."
+        )
+
+    cutoff_index = int(
+        len(unique_timestamps) * train_fraction
+    )
+
+    cutoff_index = max(
+        1,
+        min(cutoff_index, len(unique_timestamps) - 1),
+    )
+
+    validation_start_timestamp = (
+        unique_timestamps[cutoff_index]
+    )
+
+    train_display_ids = set(
+        display_times.loc[
+            display_times["timestamp"]
+            < validation_start_timestamp,
+            "display_id",
+        ]
     )
 
     validation_display_ids = set(
-        displays.iloc[
-            split_position:
-        ]["display_id"]
+        display_times.loc[
+            display_times["timestamp"]
+            >= validation_start_timestamp,
+            "display_id",
+        ]
     )
 
     train = dataset[
-        ~dataset["display_id"].isin(
-            validation_display_ids
-        )
+        dataset["display_id"].isin(train_display_ids)
     ].copy()
 
     validation = dataset[
-        dataset["display_id"].isin(
-            validation_display_ids
-        )
+        dataset["display_id"].isin(validation_display_ids)
     ].copy()
 
-    print("Training rows:", len(train))
-    print(
-        "Validation rows:",
-        len(validation),
-    )
+    train = train.reset_index(drop=True)
+    validation = validation.reset_index(drop=True)
+
+    print("\nChronological split:")
+    print(f"Train rows: {len(train):,}")
+    print(f"Validation rows: {len(validation):,}")
 
     print(
-        "Training click rate:",
-        train["clicked"].mean(),
-    )
-
-    print(
-        "Validation click rate:",
-        validation["clicked"].mean(),
-    )
-
-    print(
-        "Max training timestamp:",
+        "Max train timestamp:",
         train["timestamp"].max(),
     )
 
@@ -138,10 +151,12 @@ def chronological_split(dataset):
         validation["timestamp"].min(),
     )
 
-    return train, validation
+    assert (
+        train["timestamp"].max()
+        < validation["timestamp"].min()
+    ), "Temporal leakage detected at split boundary."
 
-
-# ============================================================
+    return train, validation# ============================================================
 # TRAINING HISTORY FOR AN ENTITY
 #
 # Example entities:
