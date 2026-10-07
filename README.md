@@ -75,7 +75,17 @@ Real-Time Engagement Probability
 ```
 
 ---
+## Engineering Challenges
 
+Some of the harder engineering problems addressed in this project included:
+
+- Preventing target leakage in historical CTR features
+- Resolving TensorFlow/PyArrow compatibility issues on Apple Silicon
+- Debugging TFX/Apache Beam runner failures
+- Aligning training and serving preprocessing
+- Validating real inference latency under concurrent load
+
+---
 ## Example Use Case
 
 A customer opens a mobile banking application.
