@@ -1,4 +1,4 @@
-# Banking Customer Engagement & Offer Ranking Platform
+# Financial Offer Ranking & Engagement Platform
 
 A production-oriented machine learning platform that predicts which financial experience a customer is most likely to engage with next - such as a **credit card offer, personal loan, rewards promotion, savings product, or personalized financial insight**.
 
